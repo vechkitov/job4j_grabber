@@ -15,10 +15,9 @@ import static org.quartz.TriggerBuilder.newTrigger;
 
 public class AlertRabbit {
     private static final Logger LOG = LoggerFactory.getLogger(AlertRabbit.class);
-    private static Properties cfg = new Properties();
 
     public static void main(String[] args) {
-        loadProperties();
+        Properties cfg = loadProperties();
         try {
             Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
             scheduler.start();
@@ -38,7 +37,8 @@ public class AlertRabbit {
         }
     }
 
-    private static void loadProperties() {
+    private static Properties loadProperties() {
+        var cfg = new Properties();
         String fileName = "rabbit.properties";
         try (InputStream is = AlertRabbit.class.getClassLoader()
                 .getResourceAsStream(fileName)) {
@@ -47,6 +47,7 @@ public class AlertRabbit {
             throw new IllegalStateException(
                     String.format("Не удалось загрузить настройки из файла '%s'", fileName));
         }
+        return cfg;
     }
 
     public static class Rabbit implements Job {
