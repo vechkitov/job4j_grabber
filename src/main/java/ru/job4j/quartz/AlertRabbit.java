@@ -7,6 +7,11 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.Properties;
 
 import static org.quartz.JobBuilder.newJob;
@@ -16,24 +21,17 @@ import static org.quartz.TriggerBuilder.newTrigger;
 public class AlertRabbit {
     private static final Logger LOG = LoggerFactory.getLogger(AlertRabbit.class);
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws ClassNotFoundException {
         Properties cfg = loadProperties();
-        try {
-            Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
-            scheduler.start();
-            JobDetail job = newJob(Rabbit.class).build();
-            SimpleScheduleBuilder times = simpleSchedule()
-                    .withIntervalInSeconds(
-                            Integer.parseInt(cfg.getProperty("rabbit.interval"))
-                    )
-                    .repeatForever();
-            Trigger trigger = newTrigger()
-                    .startNow()
-                    .withSchedule(times)
-                    .build();
-            scheduler.scheduleJob(job, trigger);
-        } catch (SchedulerException se) {
-            se.printStackTrace();
+        Class.forName(cfg.getProperty("db.driver"));
+        try (Connection cn = DriverManager.getConnection(cfg.getProperty("db.url"),
+                cfg.getProperty("db.username"),
+                cfg.getProperty("db.password"))) {
+            Scheduler scheduler = createScheduler(cfg, cn);
+            Thread.sleep(10_000L);
+            scheduler.shutdown();
+        } catch (SchedulerException | InterruptedException | SQLException e) {
+            LOG.error("Ошибка при запуске программы.", e);
         }
     }
 
@@ -50,10 +48,40 @@ public class AlertRabbit {
         return cfg;
     }
 
+    private static Scheduler createScheduler(Properties cfg, Connection cn)
+            throws SchedulerException {
+        Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
+        scheduler.start();
+        JobDataMap data = new JobDataMap();
+        data.put("connection", cn);
+        JobDetail job = newJob(Rabbit.class)
+                .usingJobData(data)
+                .build();
+        SimpleScheduleBuilder times = simpleSchedule()
+                .withIntervalInSeconds(
+                        Integer.parseInt(cfg.getProperty("rabbit.interval"))
+                )
+                .repeatForever();
+        Trigger trigger = newTrigger()
+                .startNow()
+                .withSchedule(times)
+                .build();
+        scheduler.scheduleJob(job, trigger);
+        return scheduler;
+    }
+
     public static class Rabbit implements Job {
         @Override
         public void execute(JobExecutionContext context) throws JobExecutionException {
             LOG.info("Rabbit runs here ...");
+            Connection cn = (Connection) context.getJobDetail().getJobDataMap().get("connection");
+            try (var ps = cn.prepareStatement(
+                    "insert into rabbit(created_date) values(?);")) {
+                ps.setTimestamp(1, Timestamp.valueOf(LocalDateTime.now()));
+                ps.execute();
+            } catch (SQLException e) {
+                LOG.error("Ошибка при записи в таблицу 'rabbit'.", e);
+            }
         }
     }
 }
