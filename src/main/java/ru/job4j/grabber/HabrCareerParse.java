@@ -48,10 +48,15 @@ public class HabrCareerParse implements Parse {
         return posts;
     }
 
-    private static String retrieveDescription(String link) throws IOException {
-        return Jsoup.connect(link)
-                .get()
-                .selectFirst(".style-ugc")
-                .text();
+    private static String retrieveDescription(String link) {
+        try {
+            return Jsoup.connect(link)
+                    .get()
+                    .selectFirst(".style-ugc")
+                    .text();
+        } catch (IOException e) {
+            throw new IllegalArgumentException(String.format(
+                    "Не удалось загрузить страницу по адресу: %s", link), e);
+        }
     }
 }
