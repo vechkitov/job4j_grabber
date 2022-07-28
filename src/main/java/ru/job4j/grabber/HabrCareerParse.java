@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class HabrCareerParse implements Parse {
+    public static final int NUM_OF_PAGES = 5;
     private final DateTimeParser dateTimeParser;
 
     public HabrCareerParse(DateTimeParser dateTimeParser) {
@@ -25,27 +26,36 @@ public class HabrCareerParse implements Parse {
     }
 
     @Override
-    public List<Post> list(String link) throws IOException {
+    public List<Post> list(String link) {
         List<Post> posts = new ArrayList<>();
-        String pageLink = String.format("%s/vacancies/java_developer?page=", link);
-        for (int i = 1; i <= 5; i++) {
-            Connection connection = Jsoup.connect(pageLink + i);
-            Document document = connection.get();
-            for (Element vacancy : document.select(".vacancy-card__inner")) {
-                Element titleElement = vacancy.selectFirst(".vacancy-card__title");
-                Element linkElement = titleElement.child(0);
-                String vacancyName = titleElement.text();
-                String vacancyLink = String.format("%s%s", link, linkElement.attr("href"));
-                String date = vacancy.selectFirst(".vacancy-card__date")
-                        .child(0)
-                        .attr("datetime");
-                posts.add(new Post(vacancyName,
-                        vacancyLink,
-                        retrieveDescription(vacancyLink),
-                        dateTimeParser.parse(date)));
+        for (int i = 1; i <= NUM_OF_PAGES; i++) {
+            String pageLink = String.format("%s/vacancies/java_developer?page=%d", link, i);
+            try {
+                Connection connection = Jsoup.connect(pageLink);
+                Document document = connection.get();
+                for (Element vacancy : document.select(".vacancy-card__inner")) {
+                    posts.add(parsePostPage(link, vacancy));
+                }
+            } catch (IOException e) {
+                throw new IllegalArgumentException(String.format(
+                        "Не удалось загрузить страницу по адресу: %s", pageLink), e);
             }
         }
         return posts;
+    }
+
+    private Post parsePostPage(String link, Element vacancy) {
+        Element titleElement = vacancy.selectFirst(".vacancy-card__title");
+        Element linkElement = titleElement.child(0);
+        String vacancyName = titleElement.text();
+        String vacancyLink = String.format("%s%s", link, linkElement.attr("href"));
+        String date = vacancy.selectFirst(".vacancy-card__date")
+                .child(0)
+                .attr("datetime");
+        return new Post(vacancyName,
+                vacancyLink,
+                retrieveDescription(vacancyLink),
+                dateTimeParser.parse(date));
     }
 
     private String retrieveDescription(String link) {
