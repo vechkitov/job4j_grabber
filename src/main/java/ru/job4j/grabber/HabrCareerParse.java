@@ -48,7 +48,7 @@ public class HabrCareerParse implements Parse {
         return posts;
     }
 
-    private static String retrieveDescription(String link) {
+    private String retrieveDescription(String link) {
         try {
             return Jsoup.connect(link)
                     .get()
