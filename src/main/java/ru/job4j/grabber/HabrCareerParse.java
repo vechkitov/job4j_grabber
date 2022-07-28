@@ -37,20 +37,9 @@ public class HabrCareerParse {
     }
 
     private static String retrieveDescription(String link) throws IOException {
-        Document document = Jsoup.connect(link).get();
-        StringJoiner desc = new StringJoiner(System.lineSeparator());
-        generateDescription(
-                document.selectFirst(".collapsible-description__content").children(), desc);
-        return desc.toString();
-    }
-
-    private static void generateDescription(Elements elements, StringJoiner desc) {
-        for (Element el : elements) {
-            if (el.children().size() > 0) {
-                generateDescription(el.children(), desc);
-            } else {
-                desc.add(el.text());
-            }
-        }
+        return  Jsoup.connect(link)
+                .get()
+                .selectFirst(".style-ugc")
+                .text();
     }
 }
