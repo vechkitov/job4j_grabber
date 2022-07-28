@@ -12,6 +12,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class HabrCareerParse implements Parse {
+    public static final String SOURCE_LINK = "https://career.habr.com";
+    public static final String PAGE_LINK =
+            String.format("%s/vacancies/java_developer?page=", SOURCE_LINK);
     public static final int NUM_OF_PAGES = 5;
     private final DateTimeParser dateTimeParser;
 
@@ -19,9 +22,9 @@ public class HabrCareerParse implements Parse {
         this.dateTimeParser = dateTimeParser;
     }
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) {
         new HabrCareerParse(new HabrCareerDateTimeParser())
-                .list("https://career.habr.com")
+                .list(PAGE_LINK)
                 .forEach(System.out::println);
     }
 
@@ -29,12 +32,12 @@ public class HabrCareerParse implements Parse {
     public List<Post> list(String link) {
         List<Post> posts = new ArrayList<>();
         for (int i = 1; i <= NUM_OF_PAGES; i++) {
-            String pageLink = String.format("%s/vacancies/java_developer?page=%d", link, i);
+            String pageLink = String.format("%s%d", link, i);
             try {
                 Connection connection = Jsoup.connect(pageLink);
                 Document document = connection.get();
                 for (Element vacancy : document.select(".vacancy-card__inner")) {
-                    posts.add(parsePostPage(link, vacancy));
+                    posts.add(parsePostPage(SOURCE_LINK, vacancy));
                 }
             } catch (IOException e) {
                 throw new IllegalArgumentException(String.format(
