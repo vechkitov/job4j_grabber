@@ -21,20 +21,6 @@ import static org.quartz.TriggerBuilder.newTrigger;
 public class AlertRabbit {
     private static final Logger LOG = LoggerFactory.getLogger(AlertRabbit.class);
 
-    public static void main(String[] args) throws ClassNotFoundException {
-        Properties cfg = loadProperties();
-        Class.forName(cfg.getProperty("db.driver"));
-        try (Connection cn = DriverManager.getConnection(cfg.getProperty("db.url"),
-                cfg.getProperty("db.username"),
-                cfg.getProperty("db.password"))) {
-            Scheduler scheduler = createScheduler(cfg, cn);
-            Thread.sleep(10_000L);
-            scheduler.shutdown();
-        } catch (SchedulerException | InterruptedException | SQLException e) {
-            LOG.error("Ошибка при запуске программы.", e);
-        }
-    }
-
     private static Properties loadProperties() {
         var cfg = new Properties();
         String fileName = "rabbit.properties";

@@ -22,12 +22,6 @@ public class HabrCareerParse implements Parse {
         this.dateTimeParser = dateTimeParser;
     }
 
-    public static void main(String[] args) {
-        new HabrCareerParse(new HabrCareerDateTimeParser())
-                .list(PAGE_LINK)
-                .forEach(System.out::println);
-    }
-
     @Override
     public List<Post> list(String link) {
         List<Post> posts = new ArrayList<>();

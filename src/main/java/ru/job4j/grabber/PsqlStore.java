@@ -31,29 +31,6 @@ public class PsqlStore implements Store, AutoCloseable {
         }
     }
 
-    public static void main(String[] args) {
-        Properties cfg = new Properties();
-        try (InputStream is =
-                     PsqlStore.class.getClassLoader().getResourceAsStream("rabbit.properties")) {
-            cfg.load(is);
-        } catch (IOException e) {
-            throw new IllegalStateException(
-                    String.format("Не удалось загрузить конф. файл '%s'", "rabbit.properties"), e);
-        }
-        try (PsqlStore store = new PsqlStore(cfg)) {
-            store.save(new Post("title1", "link1", "descr1", LocalDateTime.now()));
-            store.save(new Post("title2", "link2", "descr2", LocalDateTime.now()));
-            List<Post> posts = store.getAll();
-            System.out.println("--- Все посты:");
-            posts.forEach(System.out::println);
-            int id = posts.get(0).getId();
-            System.out.printf("--- Пост с id = %s%n", id);
-            System.out.println(store.findById(id));
-        } catch (Exception e) {
-            throw new IllegalStateException(e);
-        }
-    }
-
     @Override
     public void save(Post post) {
         try (PreparedStatement ps = cnn.prepareStatement("""
@@ -112,8 +89,8 @@ public class PsqlStore implements Store, AutoCloseable {
     private Post createPost(ResultSet rs) throws SQLException {
         return new Post(rs.getInt("id"),
                 rs.getString("name"),
-                rs.getString("text"),
                 rs.getString("link"),
+                rs.getString("text"),
                 rs.getTimestamp("created").toLocalDateTime());
     }
 }
